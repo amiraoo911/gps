@@ -103,6 +103,7 @@
       line-height:1.5;
     }
 
+    /* ---------- Categories ---------- */
     .chips {
       display:flex;
       flex-wrap:wrap;
@@ -116,6 +117,7 @@
       padding:4px 8px;
       font-size:12px;
       font-weight:500;
+      white-space:nowrap;
     }
 
     details summary {
@@ -159,11 +161,9 @@
     <select id="filterYear">
       <option value="">All Years</option>
     </select>
-
     <select id="filterProfessor">
       <option value="">All Professors</option>
     </select>
-
     <select id="filterCategory">
       <option value="">All Categories</option>
     </select>
@@ -207,23 +207,18 @@ const CSV_URL =
 
     const split = s => (s||"").split(/[,;\n]\s*/).map(x=>x.trim()).filter(Boolean);
 
-    const yearSel = filterYear;
-    const profSel = filterProfessor;
-    const catSel  = filterCategory;
-
     const years=new Set(), profs=new Set(), cats=new Set();
 
     data.forEach(d=>{
       if(d["Year"]) years.add(d["Year"]);
       split(d["Categories"]).forEach(c=>cats.add(c));
-
       split(d["Uni Supervisor 1"]).forEach(p=>profs.add(p));
       split(d["Uni Supervisor 2"]).forEach(p=>profs.add(p));
     });
 
-    [...years].sort().forEach(v=>yearSel.add(new Option(v,v)));
-    [...profs].sort().forEach(v=>profSel.add(new Option(v,v)));
-    [...cats].sort().forEach(v=>catSel.add(new Option(v,v)));
+    [...years].sort().forEach(v=>filterYear.add(new Option(v,v)));
+    [...profs].sort().forEach(v=>filterProfessor.add(new Option(v,v)));
+    [...cats].sort().forEach(v=>filterCategory.add(new Option(v,v)));
 
     function render(list){
       cards.innerHTML="";
@@ -248,12 +243,15 @@ const CSV_URL =
           </div>
         `;
 
+        const catWrap=document.createElement("div");
+        catWrap.className="chips";
         split(d["Categories"]).forEach(c=>{
           const s=document.createElement("span");
           s.className="chip";
           s.textContent=c;
-          card.appendChild(s);
+          catWrap.appendChild(s);
         });
+        if(catWrap.children.length) card.appendChild(catWrap);
 
         const studs=split(d["Students"]);
         if(studs.length){
@@ -283,9 +281,9 @@ const CSV_URL =
     }
 
     function applyFilters(){
-      const y=yearSel.value;
-      const p=profSel.value;
-      const c=catSel.value;
+      const y=filterYear.value;
+      const p=filterProfessor.value;
+      const c=filterCategory.value;
 
       render(data.filter(d=>{
         const profsInProject = [
@@ -299,9 +297,9 @@ const CSV_URL =
       }));
     }
 
-    yearSel.onchange =
-    profSel.onchange =
-    catSel.onchange = applyFilters;
+    filterYear.onchange =
+    filterProfessor.onchange =
+    filterCategory.onchange = applyFilters;
 
     render(data);
 
