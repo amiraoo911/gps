@@ -213,17 +213,7 @@ const CSV_URL =
     });
 
     const split = s => (s||"").split(/[,;\n]\s*/).map(x=>x.trim()).filter(Boolean);
-
-    function linkLabel(url){
-      const u = url.toLowerCase();
-      if(u.includes("youtube") || u.includes("youtu.be") || u.includes("vimeo"))
-        return "Video";
-      if(u.includes("github") || u.includes("gitlab") || u.includes("bitbucket"))
-        return "Repository";
-      if(u.includes("drive.google") || u.includes("dropbox"))
-        return "Files";
-      return "Link";
-    }
+    const isURL = s => /^https?:\/\//i.test(s);
 
     const years=new Set(), profs=new Set(), cats=new Set();
 
@@ -285,16 +275,23 @@ const CSV_URL =
           card.appendChild(det);
         }
 
-        const links=split(d["Details"]);
-        if(links.length){
+        /* ---------- FIXED LINKS ---------- */
+        const linkPairs = [
+          { title: d["Details Title Link 1"], url: d["Link 1"] },
+          { title: d["Details Title Link 2"], url: d["Link 2"] },
+          { title: d["Details Title Link 3"], url: d["Link 3"] }
+        ].filter(l => l.title && l.url && isURL(l.url));
+
+        if(linkPairs.length){
           const wrap=document.createElement("div");
           wrap.className="links";
-          links.forEach(l=>{
+          linkPairs.forEach(l=>{
             const a=document.createElement("a");
             a.className="btn";
-            a.textContent=linkLabel(l);
-            a.href=l;
+            a.textContent=l.title;
+            a.href=l.url;
             a.target="_blank";
+            a.rel="noopener";
             wrap.appendChild(a);
           });
           card.appendChild(wrap);
