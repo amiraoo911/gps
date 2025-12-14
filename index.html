@@ -120,6 +120,28 @@
       white-space:nowrap;
     }
 
+    /* ---------- Links ---------- */
+    .links {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .btn {
+      background:var(--gold);
+      color:var(--navy);
+      padding:6px 10px;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:700;
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .btn:hover {
+      background:#e4b56f;
+    }
+
     details summary {
       cursor:pointer;
       font-weight:600;
@@ -130,21 +152,6 @@
       padding:0;
       font-size:13px;
       color:var(--muted);
-    }
-
-    .btn {
-      align-self:flex-start;
-      background:var(--gold);
-      color:var(--navy);
-      padding:8px 12px;
-      border-radius:8px;
-      text-decoration:none;
-      font-weight:700;
-      font-size:14px;
-    }
-
-    .btn:hover {
-      background:#e4b56f;
     }
   </style>
 </head>
@@ -207,6 +214,17 @@ const CSV_URL =
 
     const split = s => (s||"").split(/[,;\n]\s*/).map(x=>x.trim()).filter(Boolean);
 
+    function linkLabel(url){
+      const u = url.toLowerCase();
+      if(u.includes("youtube") || u.includes("youtu.be") || u.includes("vimeo"))
+        return "Video";
+      if(u.includes("github") || u.includes("gitlab") || u.includes("bitbucket"))
+        return "Repository";
+      if(u.includes("drive.google") || u.includes("dropbox"))
+        return "Files";
+      return "Link";
+    }
+
     const years=new Set(), profs=new Set(), cats=new Set();
 
     data.forEach(d=>{
@@ -267,14 +285,20 @@ const CSV_URL =
           card.appendChild(det);
         }
 
-        split(d["Details"]).forEach(l=>{
-          const a=document.createElement("a");
-          a.className="btn";
-          a.textContent="Open";
-          a.href=l;
-          a.target="_blank";
-          card.appendChild(a);
-        });
+        const links=split(d["Details"]);
+        if(links.length){
+          const wrap=document.createElement("div");
+          wrap.className="links";
+          links.forEach(l=>{
+            const a=document.createElement("a");
+            a.className="btn";
+            a.textContent=linkLabel(l);
+            a.href=l;
+            a.target="_blank";
+            wrap.appendChild(a);
+          });
+          card.appendChild(wrap);
+        }
 
         cards.appendChild(card);
       });
@@ -290,7 +314,6 @@ const CSV_URL =
           ...split(d["Uni Supervisor 1"]),
           ...split(d["Uni Supervisor 2"])
         ];
-
         return (!y || d["Year"]===y) &&
                (!c || split(d["Categories"]).includes(c)) &&
                (!p || profsInProject.includes(p));
