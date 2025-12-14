@@ -154,14 +154,16 @@
 </header>
 
 <details id="filters">
-  <summary>🔍 Filters</summary>
+  <summary>Filters</summary>
   <div class="filter-grid">
     <select id="filterYear">
       <option value="">All Years</option>
     </select>
+
     <select id="filterProfessor">
       <option value="">All Professors</option>
     </select>
+
     <select id="filterCategory">
       <option value="">All Categories</option>
     </select>
@@ -175,27 +177,29 @@ const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSKR8WlO5h6KLBmfLFOTOt1-EbnumBTTcYUr8e_A5lqt2iR9KSryisQMow3NhEY-94GxgIKUqD0iSoH/pub?gid=1404700974&single=true&output=csv";
 
 (async ()=>{
-  try{
+  try {
     const res = await fetch(CSV_URL);
     const csv = await res.text();
 
     /* --- Tiny CSV Parser --- */
-    const rows=[]; let row=[], val="", inQ=false;
+    const rows=[], headers=[];
+    let row=[], val="", inQ=false;
     for(let i=0;i<csv.length;i++){
       const c=csv[i], n=csv[i+1];
       if(c=='"' && inQ && n=='"'){ val+='"'; i++; }
       else if(c=='"'){ inQ=!inQ; }
       else if(c==',' && !inQ){ row.push(val); val=""; }
       else if((c=='\n'||c=='\r')&&!inQ){
-        if(val||row.length){ row.push(val); rows.push(row); }
+        if(val||row.length) rows.push([...row,val]);
         row=[]; val="";
         if(c=='\r'&&n=='\n') i++;
       } else val+=c;
     }
-    if(val||row.length){ row.push(val); rows.push(row); }
+    if(val||row.length) rows.push([...row,val]);
 
-    const headers = rows[0].map(h=>h.trim());
-    const data = rows.slice(1).map(r=>{
+    rows.shift().forEach(h=>headers.push(h.trim()));
+
+    const data = rows.map(r=>{
       const o={};
       headers.forEach((h,i)=>o[h]=(r[i]||"").trim());
       return o;
@@ -212,8 +216,9 @@ const CSV_URL =
     data.forEach(d=>{
       if(d["Year"]) years.add(d["Year"]);
       split(d["Categories"]).forEach(c=>cats.add(c));
+
       if(d["Uni Supervisor 1"]) profs.add(d["Uni Supervisor 1"]);
-      if(d["External Collaborator"]) profs.add(d["External Collaborator"]);
+      if(d["Uni Supervisor 2"]) profs.add(d["Uni Supervisor 2"]);
     });
 
     [...years].sort().forEach(v=>yearSel.add(new Option(v,v)));
@@ -236,7 +241,8 @@ const CSV_URL =
           <div class="meta">
             <strong>Year:</strong> ${d["Year"]||"—"} ·
             <strong>Credit:</strong> ${d["General-Credit"]||"—"}<br>
-            <strong>Supervisor:</strong> ${d["Uni Supervisor 1"]||"—"}<br>
+            <strong>Supervisor 1:</strong> ${d["Uni Supervisor 1"]||"—"}<br>
+            ${d["Uni Supervisor 2"]?`<strong>Supervisor 2:</strong> ${d["Uni Supervisor 2"]}<br>`:""}
             ${d["External Collaborator"]?`<strong>Collaborator:</strong> ${d["External Collaborator"]}<br>`:""}
             ${d["Funding"]?`<strong>Funding:</strong> ${d["Funding"]}`:""}
           </div>
@@ -269,17 +275,14 @@ const CSV_URL =
           card.appendChild(det);
         }
 
-        const links=split(d["Details"]);
-        if(links.length){
-          links.forEach(l=>{
-            const a=document.createElement("a");
-            a.className="btn";
-            a.textContent="Open";
-            a.href=l;
-            a.target="_blank";
-            card.appendChild(a);
-          });
-        }
+        split(d["Details"]).forEach(l=>{
+          const a=document.createElement("a");
+          a.className="btn";
+          a.textContent="Open";
+          a.href=l;
+          a.target="_blank";
+          card.appendChild(a);
+        });
 
         cards.appendChild(card);
       });
@@ -291,13 +294,20 @@ const CSV_URL =
       const c=catSel.value;
 
       render(data.filter(d=>{
-        return (!y || d["Year"]===y) &&
+        const profMatch =
+          !p ||
+          d["Uni Supervisor 1"] === p ||
+          d["Uni Supervisor 2"] === p;
+
+        return (!y || d["Year"] === y) &&
                (!c || split(d["Categories"]).includes(c)) &&
-               (!p || [d["Uni Supervisor 1"],d["External Collaborator"]].includes(p));
+               profMatch;
       }));
     }
 
-    yearSel.onchange = profSel.onchange = catSel.onchange = applyFilters;
+    yearSel.onchange =
+    profSel.onchange =
+    catSel.onchange = applyFilters;
 
     render(data);
 
