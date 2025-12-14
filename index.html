@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Graduation Projects</title>
+
+  <style>
+    :root {
+      --navy:#1b2656;
+      --gold:#d99f53;
+      --bg:#f4f4f4;
+      --text:#1b2656;
+      --muted:#4a4a4a;
+      --border:#ddd;
+    }
+
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:"Segoe UI",Roboto,Arial,sans-serif;
+    }
+
+    header {
+      background:var(--navy);
+      color:#fff;
+      padding:20px 16px;
+      text-align:center;
+    }
+
+    header h2 {
+      margin:0;
+      color:var(--gold);
+      font-size:26px;
+    }
+
+    /* ---------- Filters ---------- */
+    #filters {
+      max-width:1100px;
+      margin:20px auto;
+      padding:0 16px;
+    }
+
+    #filters summary {
+      font-weight:700;
+      cursor:pointer;
+      color:var(--navy);
+    }
+
+    .filter-grid {
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:12px;
+    }
+
+    select {
+      padding:8px;
+      border-radius:6px;
+      border:1px solid var(--border);
+      font-size:14px;
+    }
+
+    /* ---------- Cards ---------- */
+    #cards {
+      max-width:1100px;
+      margin:24px auto 60px;
+      padding:0 16px;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+      gap:16px;
+    }
+
+    .card {
+      background:#fff;
+      border:1px solid var(--border);
+      border-left:6px solid var(--gold);
+      border-radius:10px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      box-shadow:0 2px 4px rgba(0,0,0,0.05);
+      transition:.15s ease;
+    }
+
+    .card:hover {
+      transform:translateY(-2px);
+      box-shadow:0 4px 8px rgba(0,0,0,.1);
+    }
+
+    .title {
+      font-weight:700;
+      font-size:17px;
+      color:var(--navy);
+      line-height:1.3;
+    }
+
+    .meta {
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .chips {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .chip {
+      border:1px solid var(--gold);
+      background:rgba(217,159,83,.1);
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:12px;
+      font-weight:500;
+    }
+
+    details summary {
+      cursor:pointer;
+      font-weight:600;
+    }
+
+    details ul {
+      margin:6px 0 0 18px;
+      padding:0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .btn {
+      align-self:flex-start;
+      background:var(--gold);
+      color:var(--navy);
+      padding:8px 12px;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:700;
+      font-size:14px;
+    }
+
+    .btn:hover {
+      background:#e4b56f;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>Graduation Projects</h2>
+</header>
+
+<details id="filters">
+  <summary>🔍 Filters</summary>
+  <div class="filter-grid">
+    <select id="filterYear">
+      <option value="">All Years</option>
+    </select>
+    <select id="filterProfessor">
+      <option value="">All Professors</option>
+    </select>
+    <select id="filterCategory">
+      <option value="">All Categories</option>
+    </select>
+  </div>
+</details>
+
+<div id="cards">Loading…</div>
+
+<script>
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vSKR8WlO5h6KLBmfLFOTOt1-EbnumBTTcYUr8e_A5lqt2iR9KSryisQMow3NhEY-94GxgIKUqD0iSoH/pub?gid=1404700974&single=true&output=csv";
+
+(async ()=>{
+  try{
+    const res = await fetch(CSV_URL);
+    const csv = await res.text();
+
+    /* --- Tiny CSV Parser --- */
+    const rows=[]; let row=[], val="", inQ=false;
+    for(let i=0;i<csv.length;i++){
+      const c=csv[i], n=csv[i+1];
+      if(c=='"' && inQ && n=='"'){ val+='"'; i++; }
+      else if(c=='"'){ inQ=!inQ; }
+      else if(c==',' && !inQ){ row.push(val); val=""; }
+      else if((c=='\n'||c=='\r')&&!inQ){
+        if(val||row.length){ row.push(val); rows.push(row); }
+        row=[]; val="";
+        if(c=='\r'&&n=='\n') i++;
+      } else val+=c;
+    }
+    if(val||row.length){ row.push(val); rows.push(row); }
+
+    const headers = rows[0].map(h=>h.trim());
+    const data = rows.slice(1).map(r=>{
+      const o={};
+      headers.forEach((h,i)=>o[h]=(r[i]||"").trim());
+      return o;
+    });
+
+    const split = s => (s||"").split(/[,;\n]\s*/).filter(Boolean);
+
+    const yearSel = filterYear;
+    const profSel = filterProfessor;
+    const catSel  = filterCategory;
+
+    const years=new Set(), profs=new Set(), cats=new Set();
+
+    data.forEach(d=>{
+      if(d["Year"]) years.add(d["Year"]);
+      split(d["Categories"]).forEach(c=>cats.add(c));
+      if(d["Uni Supervisor 1"]) profs.add(d["Uni Supervisor 1"]);
+      if(d["External Collaborator"]) profs.add(d["External Collaborator"]);
+    });
+
+    [...years].sort().forEach(v=>yearSel.add(new Option(v,v)));
+    [...profs].sort().forEach(v=>profSel.add(new Option(v,v)));
+    [...cats].sort().forEach(v=>catSel.add(new Option(v,v)));
+
+    function render(list){
+      cards.innerHTML="";
+      if(!list.length){
+        cards.textContent="No matching projects.";
+        return;
+      }
+
+      list.forEach(d=>{
+        const card=document.createElement("article");
+        card.className="card";
+
+        card.innerHTML=`
+          <div class="title">${d["Project"]||"Untitled"}</div>
+          <div class="meta">
+            <strong>Year:</strong> ${d["Year"]||"—"} ·
+            <strong>Credit:</strong> ${d["General-Credit"]||"—"}<br>
+            <strong>Supervisor:</strong> ${d["Uni Supervisor 1"]||"—"}<br>
+            ${d["External Collaborator"]?`<strong>Collaborator:</strong> ${d["External Collaborator"]}<br>`:""}
+            ${d["Funding"]?`<strong>Funding:</strong> ${d["Funding"]}`:""}
+          </div>
+        `;
+
+        const catsArr=split(d["Categories"]);
+        if(catsArr.length){
+          const chips=document.createElement("div");
+          chips.className="chips";
+          catsArr.forEach(c=>{
+            const s=document.createElement("span");
+            s.className="chip";
+            s.textContent=c;
+            chips.appendChild(s);
+          });
+          card.appendChild(chips);
+        }
+
+        const studs=split(d["Students"]);
+        if(studs.length){
+          const det=document.createElement("details");
+          det.innerHTML=`<summary>Students (${studs.length})</summary>`;
+          const ul=document.createElement("ul");
+          studs.forEach(s=>{
+            const li=document.createElement("li");
+            li.textContent=s;
+            ul.appendChild(li);
+          });
+          det.appendChild(ul);
+          card.appendChild(det);
+        }
+
+        const links=split(d["Details"]);
+        if(links.length){
+          links.forEach(l=>{
+            const a=document.createElement("a");
+            a.className="btn";
+            a.textContent="Open";
+            a.href=l;
+            a.target="_blank";
+            card.appendChild(a);
+          });
+        }
+
+        cards.appendChild(card);
+      });
+    }
+
+    function applyFilters(){
+      const y=yearSel.value;
+      const p=profSel.value;
+      const c=catSel.value;
+
+      render(data.filter(d=>{
+        return (!y || d["Year"]===y) &&
+               (!c || split(d["Categories"]).includes(c)) &&
+               (!p || [d["Uni Supervisor 1"],d["External Collaborator"]].includes(p));
+      }));
+    }
+
+    yearSel.onchange = profSel.onchange = catSel.onchange = applyFilters;
+
+    render(data);
+
+  } catch(e){
+    cards.textContent="Failed to load data.";
+    console.error(e);
+  }
+})();
+</script>
+
+</body>
+</html>
