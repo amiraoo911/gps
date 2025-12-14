@@ -181,7 +181,7 @@ const CSV_URL =
     const res = await fetch(CSV_URL);
     const csv = await res.text();
 
-    /* --- Tiny CSV Parser --- */
+    /* --- CSV parser --- */
     const rows=[], headers=[];
     let row=[], val="", inQ=false;
     for(let i=0;i<csv.length;i++){
@@ -205,7 +205,7 @@ const CSV_URL =
       return o;
     });
 
-    const split = s => (s||"").split(/[,;\n]\s*/).filter(Boolean);
+    const split = s => (s||"").split(/[,;\n]\s*/).map(x=>x.trim()).filter(Boolean);
 
     const yearSel = filterYear;
     const profSel = filterProfessor;
@@ -217,8 +217,8 @@ const CSV_URL =
       if(d["Year"]) years.add(d["Year"]);
       split(d["Categories"]).forEach(c=>cats.add(c));
 
-      if(d["Uni Supervisor 1"]) profs.add(d["Uni Supervisor 1"]);
-      if(d["Uni Supervisor 2"]) profs.add(d["Uni Supervisor 2"]);
+      split(d["Uni Supervisor 1"]).forEach(p=>profs.add(p));
+      split(d["Uni Supervisor 2"]).forEach(p=>profs.add(p));
     });
 
     [...years].sort().forEach(v=>yearSel.add(new Option(v,v)));
@@ -248,18 +248,12 @@ const CSV_URL =
           </div>
         `;
 
-        const catsArr=split(d["Categories"]);
-        if(catsArr.length){
-          const chips=document.createElement("div");
-          chips.className="chips";
-          catsArr.forEach(c=>{
-            const s=document.createElement("span");
-            s.className="chip";
-            s.textContent=c;
-            chips.appendChild(s);
-          });
-          card.appendChild(chips);
-        }
+        split(d["Categories"]).forEach(c=>{
+          const s=document.createElement("span");
+          s.className="chip";
+          s.textContent=c;
+          card.appendChild(s);
+        });
 
         const studs=split(d["Students"]);
         if(studs.length){
@@ -294,14 +288,14 @@ const CSV_URL =
       const c=catSel.value;
 
       render(data.filter(d=>{
-        const profMatch =
-          !p ||
-          d["Uni Supervisor 1"] === p ||
-          d["Uni Supervisor 2"] === p;
+        const profsInProject = [
+          ...split(d["Uni Supervisor 1"]),
+          ...split(d["Uni Supervisor 2"])
+        ];
 
-        return (!y || d["Year"] === y) &&
+        return (!y || d["Year"]===y) &&
                (!c || split(d["Categories"]).includes(c)) &&
-               profMatch;
+               (!p || profsInProject.includes(p));
       }));
     }
 
