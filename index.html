@@ -274,26 +274,67 @@ const CSV_URL =
           det.appendChild(ul);
           card.appendChild(det);
         }
+        /* ---------- RESOURCE ACCESS CONTROL ---------- */
 
-        /* ---------- FIXED LINKS ---------- */
-        const linkPairs = [
-          { title: d["Title Link 1"], url: d["Link 1"] },
-          { title: d["Title Link 2"], url: d["Link 2"] },
-          { title: d["Title Link 3"], url: d["Link 3"] }
-        ].filter(l => l.title && l.url && isURL(l.url));
+          // define private resources
+          const PRIVATE_RESOURCES = [
+            "thesis",
+            "presentation",
+            "submission",
+            "report",
+            "paper"
+          ];
+          
+          function isPrivate(title) {
+            return PRIVATE_RESOURCES.some(r =>
+              title.toLowerCase().includes(r)
+            );
+          }
+          
+          const PROJECT_ID = d["ID"] || d["Project ID"] || d["Project"]; // fallback-safe
+          
+          const linkPairs = [
+            { title: d["Title Link 1"], url: d["Link 1"] },
+            { title: d["Title Link 2"], url: d["Link 2"] },
+            { title: d["Title Link 3"], url: d["Link 3"] }
+          ].filter(l => l.title && l.url);
+
+        // const linkPairs = [
+        //   { title: d["Title Link 1"], url: d["Link 1"] },
+        //   { title: d["Title Link 2"], url: d["Link 2"] },
+        //   { title: d["Title Link 3"], url: d["Link 3"] }
+        // ].filter(l => l.title && l.url && isURL(l.url));
 
         if(linkPairs.length){
           const wrap=document.createElement("div");
           wrap.className="links";
+          // linkPairs.forEach(l=>{
+          //   const a=document.createElement("a");
+          //   a.className="btn";
+          //   a.textContent=l.title;
+          //   a.href=l.url;
+          //   a.target="_blank";
+          //   a.rel="noopener";
+          //   wrap.appendChild(a);
+          // });
           linkPairs.forEach(l=>{
-            const a=document.createElement("a");
-            a.className="btn";
-            a.textContent=l.title;
-            a.href=l.url;
-            a.target="_blank";
-            a.rel="noopener";
-            wrap.appendChild(a);
-          });
+          const a = document.createElement("a");
+          a.className = "btn";
+          a.textContent = l.title;
+        
+          if (isPrivate(l.title)) {
+            // PRIVATE → captcha gate
+            a.href = `captcha.html?project=${encodeURIComponent(PROJECT_ID)}&resource=${encodeURIComponent(l.title)}`;
+          } else {
+            // PUBLIC → direct open
+            a.href = l.url;
+            a.target = "_blank";
+            a.rel = "noopener";
+          }
+        
+          wrap.appendChild(a);
+        });
+
           card.appendChild(wrap);
         }
 
