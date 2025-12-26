@@ -15,6 +15,17 @@
       --border:#ddd;
     }
 
+    .project-id {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4a4a4a;
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 3px 8px;
+      display: inline-block;
+      margin-bottom: 6px;
+  }
+
     body {
       margin:0;
       background:var(--bg);
@@ -238,11 +249,14 @@ const CSV_URL =
       list.forEach(d=>{
         const card=document.createElement("article");
         card.className="card";
+        
+        const pid = d["Id"] || "—";
 
         card.innerHTML=`
-          <div class="title">${d["Project"]||"Untitled"}</div>
+          <div class="project-id">Project ID: ${pid}</div>
+          <div class="title">${d["Project"] || "Untitled"}</div>
           <div class="meta">
-            <strong>Year:</strong> ${d["Year"]||"—"} ·
+            <strong>Year:</strong> ${d["Year"] || "—"} ·
             <strong>Credit:</strong> ${d["General-Credit"]||"—"}<br>
             <strong>Supervisor 1:</strong> ${d["Uni Supervisor 1"]||"—"}<br>
             ${d["Uni Supervisor 2"]?`<strong>Supervisor 2:</strong> ${d["Uni Supervisor 2"]}<br>`:""}
